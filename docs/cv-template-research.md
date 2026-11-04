@@ -1,85 +1,85 @@
-# Structura CV-urilor: cercetare și catalog de template-uri
+# CV structure research and template catalog
 
-Verificat la: **4 noiembrie 2026**. Acesta este un rezumat al recomandărilor disponibile
-la această dată, nu un studiu statistic care demonstrează că un anumit format este
-mai popular în 2026 sau că îmbunătățește rata de angajare.
+Reviewed on: **November 4, 2026**. This summarizes guidance available on that date.
+It is not a statistical study establishing that a format is more popular in 2026
+or improves hiring rates.
 
-## Concluzii din surse
+## Findings from sources
 
-- **Lizibilitate și extragerea datelor.** Greenhouse enumeră coloanele, tabelele,
-  imaginile și contactul din antet/subsol printre cauzele de interpretare incorectă.
-  Acest lucru susține alegerea conservatoare a unei singure coloane cu text real.
-  O eroare de parsare nu demonstrează respingerea automată a candidatului.
-  [Greenhouse — Unsuccessful resume parse](https://support.greenhouse.io/hc/en-us/articles/200989175-Unsuccessful-resume-parse)
-- **Formatare simplă.** CareerOneStop recomandă titluri uzuale, spațiere consecventă,
-  font lizibil și, pentru CV-urile profesionale obișnuite, una sau două pagini.
-  Recomandă PDF dacă angajatorul nu cere alt format. Lungimea nu este universală.
-  [CareerOneStop — Formatting](https://cloudfront.careeronestop.org/JobSearch/Resumes/ResumeGuide/formatting.aspx)
-- **Adaptare autentică asistată de AI.** Harvard descrie folosirea AI pentru revizuirea
-  formulărilor și introducerea termenilor relevanți, păstrând reprezentarea autentică
-  a candidatului. În proiect, orice reformulare trebuie legată de o dovadă din profil.
-  [Harvard — Create a Strong Resume](https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/)
-- **Structura depinde de parcurs.** Oxford descrie formatul cronologic invers și
-  varianta bazată pe competențe pentru tranziții. Am ales un hibrid pentru schimbarea
-  de carieră, astfel încât dovezile transferabile să nu înlocuiască istoricul cu date.
-  [Oxford — CVs](https://www.ox.ac.uk/careers/careers-guidance/job-search-and-applications/writing-applications/cvs)
-- **Un profil, mai multe aplicații.** Europass permite alegerea informațiilor dintr-un
-  profil și adaptarea CV-ului la o oportunitate. Susține fluxul proiectului:
-  profil complet → selecție pentru anunț → document separat. Nu reproducem designul
-  Europass și nu pretindem că fișierele noastre sunt documente Europass oficiale.
-  [Europass — Create your CV](https://europass.europa.eu/en/create-europass-cv)
-- **Excepții academice.** Oxford descrie secțiuni dedicate cercetării, publicațiilor
-  și predării. Menționează și CV-urile narative cerute de unii finanțatori;
-  acestea necesită instrucțiunile instituției, nu un template profesional generic.
-  [Oxford — Academic applications](https://www.ox.ac.uk/careers/careers-guidance/job-search-and-applications/writing-applications/academic-applications)
+- **Readability and data extraction.** Greenhouse lists columns, tables, images,
+  and contact details in headers or footers as potential parsing problems. This
+  supports the conservative choice of a single column with real text. A parsing
+  error does not establish automatic candidate rejection.
+  [Greenhouse - Unsuccessful resume parse](https://support.greenhouse.io/hc/en-us/articles/200989175-Unsuccessful-resume-parse)
+- **Simple formatting.** CareerOneStop recommends conventional headings, consistent
+  spacing, readable fonts, and one or two pages for typical professional resumes.
+  It recommends PDF unless the employer specifies otherwise. Length is not universal.
+  [CareerOneStop - Formatting](https://cloudfront.careeronestop.org/JobSearch/Resumes/ResumeGuide/formatting.aspx)
+- **Authentic AI-assisted tailoring.** Harvard describes AI-assisted wording revisions
+  and relevant keywords while preserving an authentic representation of the candidate.
+  In this project, every rephrased claim must remain linked to profile evidence.
+  [Harvard - Create a Strong Resume](https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/)
+- **Structure depends on career history.** Oxford describes reverse chronological
+  and skills-based formats for transitions. We chose a career-change hybrid so
+  transferable skill evidence does not replace dated employment history.
+  [Oxford - CVs](https://www.ox.ac.uk/careers/careers-guidance/job-search-and-applications/writing-applications/cvs)
+- **One profile, multiple applications.** Europass supports selecting profile information
+  and tailoring a CV to an opportunity. This supports our workflow: complete profile,
+  selection for a job advertisement, separate document. We do not reproduce Europass
+  design or claim our files are official Europass documents.
+  [Europass - Create your CV](https://europass.europa.eu/en/create-europass-cv)
+- **Academic exceptions.** Oxford describes sections for research, publications, and
+  teaching. It also discusses narrative CVs required by some funders; these need
+  institutional instructions rather than a generic professional template.
+  [Oxford - Academic applications](https://www.ox.ac.uk/careers/careers-guidance/job-search-and-applications/writing-applications/academic-applications)
 
-## Alegeri ale proiectului
+## Project decisions
 
-Template-urile reprezintă o sinteză proprie, nu copii ale unor modele instituționale.
-Nu există aici o dovadă că PDF este acceptat de orice portal sau că un layout poate
-obține un „scor ATS” universal. Instrucțiunile angajatorului au prioritate în privința
-formatului, lungimii și formularului cerut.
+The templates are an original synthesis, not copies of institutional templates.
+There is no evidence here that every portal accepts PDF or that a layout achieves
+any universal "ATS score." Employer instructions take precedence for submission
+format, length, and required forms.
 
-Am ales implicit documente fără fotografie. Recomandările regionale diferă: de
-exemplu, Europass sugerează o fotografie, în timp ce alte surse semnalează riscuri
-pentru parsare. Nu tratăm o convenție regională ca regulă globală. O cerință explicită
-diferită trebuie discutată înainte de folosirea acestor template-uri.
+The default documents exclude photographs. Regional guidance differs: Europass,
+for example, suggests a photograph, while other sources identify parsing risks.
+We do not treat a regional convention as a global rule. An explicit conflicting
+requirement should be discussed before using these templates.
 
-A4, marginile de 20 mm, fontul de 11 pt, numărul orientativ de puncte și separarea
-raportului de adaptare sunt decizii de produs și implementare. Nu le prezentăm drept
-cerințe ATS dovedite. Nu oferim un template pur funcțional sau unul cu infografice
-în colecția inițială; păstrăm contextul profesional și o ordine de lectură simplă.
+A4 pages, 20 mm margins, 11 pt body text, suggested bullet counts, and a separate
+adaptation report are product and implementation choices, not proven ATS
+requirements. The initial collection has no purely functional or infographic
+template; it preserves employment context and a simple reading order.
 
 ## Catalog
 
-| Fișier din `cv-templates/` | Utilizare | Lungime orientativă |
+| File in `cv-templates/` | Use case | Suggested length |
 | --- | --- | --- |
-| `01-reverse-chronological.md` | Implicit; experiență relevantă, inclusiv senior | 1-2 pagini |
-| `02-early-career.md` | Student, absolvent, internship, primul job | 1 pagină |
-| `03-technical.md` | Roluri tehnice cu instrumente și proiecte documentate | 1-2 pagini |
-| `04-career-change.md` | Tranziție profesională, competențe cu dovezi și istoric | 1-2 pagini |
-| `05-academic.md` | Cercetare și posturi academice | După cerințele instituției |
+| `01-reverse-chronological.md` | Default; relevant experience, including senior roles | 1-2 pages |
+| `02-early-career.md` | Students, graduates, internships, first jobs | 1 page |
+| `03-technical.md` | Technical roles with documented tools and projects | 1-2 pages |
+| `04-career-change.md` | Career transitions with skill evidence and employment history | 1-2 pages |
+| `05-academic.md` | Research and academic posts | Institutional requirements |
 
-Fiecare fișier este independent și include contractul de intrare, regulile factuale,
-structura, specificația PDF și verificările. Repetarea regulilor comune este
-intenționată: un LLM care primește un singur template trebuie să aibă toate regulile.
-La modificarea regulilor comune, actualizează toate cele cinci fișiere și versiunile.
+Each file is self-contained and includes the input contract, factual accuracy rules,
+structure, PDF specification, and checks. Shared rules are intentionally repeated:
+an LLM receiving a single template must have all applicable instructions. When
+changing shared rules, update all five files and their versions.
 
-## Integrarea viitoare în aplicație
+## Future application integration
 
-1. Aplicația listează numai `cv-templates/*.md`, citește metadatele și validează
-   template-ul ales. Documentul de cercetare rămâne separat de catalog.
-2. Alegerea explicită a utilizatorului are prioritate. Dacă aplicația recomandă
-   automat o variantă, explică alegerea pe baza profilului și anunțului.
-3. Trimite regulile template-ului separat de cele două intrări delimitate ca date.
-   Simplele instrucțiuni anti-injecție din Markdown nu înlocuiesc izolarea din aplicație.
-4. LLM-ul produce conținutul și raportul de proveniență. Aplicația validează datele
-   și le transmite unui renderer controlat, de exemplu ReportLab. Nu executa cod
-   generat de LLM și nu permite încărcarea automată de resurse externe.
-5. Rendererul produce PDF cu text, apoi aplicația verifică extracția și layoutul.
-   Înaintea trimiterii către un furnizor LLM, aplicația trebuie să explice utilizatorului
-   ce date personale sunt trimise și către cine. Evită logarea profilului și cheilor API.
+1. List only `cv-templates/*.md`, read metadata, and validate the selected template.
+   Keep this research document outside the template catalog.
+2. An explicit user selection takes precedence. If the application recommends a
+   template automatically, explain the choice using the profile and advertisement.
+3. Send template instructions separately from the two inputs delimited as data.
+   Markdown instructions against prompt injection do not replace application isolation.
+4. The LLM produces content and a provenance report. Validate the data and pass it
+   to a controlled renderer, such as ReportLab. Do not execute LLM-generated code
+   or allow automatic loading of external resources.
+5. The renderer produces a text-based PDF; the application then checks extraction
+   and layout. Before sending data to an LLM provider, explain what personal data
+   will be sent and to whom. Avoid logging profiles or API keys.
 
-**Stadiu actual:** colecție de instrucțiuni Markdown. Nu există încă integrare LLM,
-renderer, CV-uri generate sau validare în portaluri ATS reale. Acestea sunt pașii
-următori de implementare, nu funcționalități deja livrate.
+**Current status:** a collection of Markdown instructions. There is no LLM
+integration, renderer, generated CV, or validation in real ATS portals yet. These
+are future implementation steps, not features already delivered.

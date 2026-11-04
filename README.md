@@ -1,19 +1,27 @@
 # personalized-cv
 
-Aplicație pentru crearea de CV-uri adaptate unui anunț de angajare, pornind de la
-profilul real al candidatului și folosind un LLM.
+An application for tailoring CVs to job advertisements using an LLM and the
+candidate's actual profile.
 
-Rezultatul urmărit este un PDF cu text selectabil și căutabil, fără experiență sau
-calificări inventate.
+The intended output is a PDF with selectable, searchable text, without fabricated
+experience or qualifications.
 
-## Stadiu
+## Status
 
-Proiectul conține cinci template-uri Markdown independente în `cv-templates/`.
-Cercetarea, sursele și catalogul sunt în [docs/cv-template-research.md](docs/cv-template-research.md).
-Integrarea LLM și generatorul PDF nu sunt încă implementate.
+The project contains five independent Markdown templates in `cv-templates/`.
+Research, sources, and the catalog are documented in
+[docs/cv-template-research.md](docs/cv-template-research.md).
+LLM integration and the PDF generator are not implemented yet.
 
-## Date locale
+## Repository language
 
-Păstrează profilurile, anunțurile și CV-urile generate în `private/`, `input/` sau
-`output/`, excluse din Git. Cheile API se păstrează local în `.env`, de asemenea
-exclus din Git. Nu adăuga date personale ale candidaților în template-uri.
+All repository content, documentation, template instructions, code comments, commit
+messages, and GitHub descriptions, issues, and pull requests must be in English.
+Generated CVs may use the language selected by the user; this does not change the
+repository language policy. Keep candidate data and generated documents outside Git.
+
+## Local data
+
+Store profiles, job advertisements, and generated CVs in `private/`, `input/`, or
+`output/`, which are excluded from Git. Store API keys locally in `.env`, also
+excluded from Git. Do not add candidates' personal data to templates.
