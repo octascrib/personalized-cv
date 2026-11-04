@@ -1,0 +1,26 @@
+# Local agent and cloud configuration
+.agents/
+.aws/
+.codex/
+
+# Credentials
+.env
+.env.*
+!.env.example
+
+# Candidate data and generated documents
+private/
+input/
+output/
+tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
