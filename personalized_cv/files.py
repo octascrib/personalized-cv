@@ -8,6 +8,17 @@ import unicodedata
 MAX_INPUT_BYTES = 200_000
 
 
+def mapped_input(directory: str, name: Path) -> Path:
+    """Resolve a filename/subpath strictly inside its designated input directory."""
+    base = (Path.cwd() / directory).resolve()
+    if name.is_absolute() or ".." in name.parts or "\\" in str(name):
+        raise ValueError(f"Use a filename or relative subpath inside {directory}/, not an absolute path or traversal.")
+    path = (base / name).resolve()
+    if not path.is_relative_to(base):
+        raise ValueError(f"The input must remain inside {directory}/, including symlink targets.")
+    return path
+
+
 def read_text(path: Path) -> str:
     if not path.is_file():
         raise ValueError(f"Input file does not exist: {path}")

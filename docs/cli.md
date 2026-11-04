@@ -29,18 +29,33 @@ API implementation reference:
 
 ## Generate a CV
 
-Create your UTF-8 profile in `private/profile.md` and paste the job advertisement
-into `input/job.txt`. Both files are plain text, not PDF or DOCX. Run from the
+Create your UTF-8 profile in `profile/profile.md` and paste the job advertisement
+into `jd/job.txt`. Both files are plain text, not PDF or DOCX. Run from the
 repository root:
 
 ```bash
 python -m personalized_cv \
-  --profile private/profile.md \
-  --job input/job.txt \
-  --template cv-templates/01-reverse-chronological.md
+  --profile profile.md \
+  --jd job.txt \
+  --template 01-reverse-chronological.md
 ```
 
-The three file arguments are required. Set the OpenAI model with `OPENAI_MODEL` or the
+The three file arguments are required. They are resolved relative to designated
+directories in the current working directory:
+
+| Argument | Example | Resolved file |
+| --- | --- | --- |
+| `--profile` | `profile.md` | `profile/profile.md` |
+| `--jd` | `job.txt` | `jd/job.txt` |
+| `--template` | `01-reverse-chronological.md` | `template/01-reverse-chronological.md` |
+
+Pass filenames without repeating the directory prefix. Relative subpaths such as
+`--profile candidates/person.md` are also supported within the designated directory.
+Absolute paths, parent-directory traversal, and symlinks escaping that directory are
+rejected. Root-level files with the same name are not used as fallbacks. The job
+description argument is named `--jd`; the previous `--job` flag has been removed.
+
+ Set the OpenAI model with `OPENAI_MODEL` or the
 optional `--model` flag. Use `--provider local` for direct offline inference. The installed `personalized-cv` command accepts the same
 arguments as `python -m personalized_cv`.
 
@@ -48,9 +63,9 @@ To choose the output filename:
 
 ```bash
 python -m personalized_cv \
-  --profile private/profile.md \
-  --job input/job.txt \
-  --template cv-templates/03-technical.md \
+  --profile profile.md \
+  --jd job.txt \
+  --template 03-technical.md \
   --output my-application.pdf \
   --language English \
   --timezone Europe/Bucharest
@@ -114,7 +129,7 @@ adapter, base model without a chat template, or an arbitrary safetensors checkpo
 is not sufficient. Quantized models requiring additional backends are not configured
 by this initial adapter. Check model licensing before obtaining or using weights.
 
-Keep the complete model under `private/models/` or outside the repository. Never
+Keep the complete model under `profile/models/` or outside the repository. Never
 commit weights. The application does not download models automatically or execute
 custom model code (`trust_remote_code=False`). It passes `local_files_only=True`
 for tokenizer/model loading and requires `use_safetensors=True` for the weights.
@@ -122,10 +137,10 @@ for tokenizer/model loading and requires `use_safetensors=True` for the weights.
 ```bash
 python -m personalized_cv \
   --provider local \
-  --model private/models/my-instruct-model \
-  --profile private/profile.md \
-  --job input/job.txt \
-  --template cv-templates/03-technical.md \
+  --model profile/models/my-instruct-model \
+  --profile profile.md \
+  --jd job.txt \
+  --template 03-technical.md \
   --device cpu \
   --max-new-tokens 4096
 ```

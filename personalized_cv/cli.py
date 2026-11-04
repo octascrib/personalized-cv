@@ -12,7 +12,7 @@ from threading import Event, Thread
 import time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .files import output_stem, read_text, reserve_outputs, template_metadata
+from .files import mapped_input, output_stem, read_text, reserve_outputs, template_metadata
 from .llm import ProviderError, generate
 from .local_llm import generate_local, validate_model_directory
 from .render import find_fonts, markdown, render_pdf, verify_pdf
@@ -41,9 +41,9 @@ def parser() -> argparse.ArgumentParser:
         epilog="OpenAI mode sends inputs to OpenAI. Local mode loads an existing model directory offline. "
                "Review the generated CV and report before applying.",
     )
-    result.add_argument("--profile", required=True, type=Path, help="UTF-8 candidate profile (.md or .txt)")
-    result.add_argument("--job", required=True, type=Path, help="UTF-8 job advertisement (.md or .txt)")
-    result.add_argument("--template", required=True, type=Path, help="Markdown template file")
+    result.add_argument("--profile", required=True, type=Path, help="UTF-8 candidate filename relative to profile/ (.md or .txt)")
+    result.add_argument("--jd", required=True, type=Path, help="UTF-8 job description filename relative to jd/ (.md or .txt)")
+    result.add_argument("--template", required=True, type=Path, help="Markdown template filename relative to template/")
     result.add_argument("--output", help="Optional filename inside output/; .pdf is optional")
     result.add_argument("--provider", choices=("openai", "local"), default=os.environ.get("CV_PROVIDER", "openai"),
                         help="Generation backend (default: CV_PROVIDER or openai)")
@@ -79,7 +79,10 @@ def progress(activity: str = "Waiting for the model response"):
 def run(args: argparse.Namespace) -> int:
     started = time.monotonic()
     LOG.info("Reading and validating input files...")
-    profile, job, template = (read_text(path) for path in (args.profile, args.job, args.template))
+    profile, job, template = (
+        read_text(mapped_input(directory, name))
+        for directory, name in (("profile", args.profile), ("jd", args.jd), ("template", args.template))
+    )
     metadata = template_metadata(template)
     fonts = find_fonts(args.font_dir)
     timezone = ZoneInfo(args.timezone) if args.timezone else None

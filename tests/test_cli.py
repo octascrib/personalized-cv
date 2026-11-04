@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from pypdf import PdfReader
 
 from personalized_cv.cli import main
-from personalized_cv.files import output_stem, read_text, reserve_outputs
+from personalized_cv.files import mapped_input, output_stem, read_text, reserve_outputs
 from personalized_cv.llm import ProviderError, generate
 from personalized_cv.models import Claim, Entry, GeneratedCV, JobDetail, Requirement, Section
 from personalized_cv.render import find_fonts, render_pdf, verify_pdf
@@ -60,7 +60,45 @@ def working_directory(path):
         os.chdir(original)
 
 
+def prepare_workspace(path):
+    for name in ("profile", "jd", "template"):
+        (path / name).mkdir(exist_ok=True)
+    (path / "profile/profile.md").write_text(PROFILE)
+    (path / "jd/job.txt").write_text(JOB)
+    template = "01-reverse-chronological.md"
+    (path / "template" / template).write_text((ROOT / "template" / template).read_text())
+
+
 class FilesTests(unittest.TestCase):
+    def test_filenames_map_to_their_designated_directories(self):
+        with tempfile.TemporaryDirectory() as directory, working_directory(Path(directory)):
+            root = Path(directory)
+            prepare_workspace(root)
+            (root / "profile.md").write_text("Wrong root-level profile")
+            self.assertEqual(read_text(mapped_input("profile", Path("profile.md"))), PROFILE)
+            self.assertEqual(read_text(mapped_input("jd", Path("job.txt"))), JOB)
+            self.assertEqual(mapped_input("template", Path("01-reverse-chronological.md")),
+                             root / "template/01-reverse-chronological.md")
+
+    def test_mapped_input_rejects_directory_escape(self):
+        with tempfile.TemporaryDirectory() as directory, working_directory(Path(directory)):
+            for name in ("../profile.md", "/tmp/profile.md", "nested/../../profile.md", "..\\profile.md"):
+                with self.subTest(name=name), self.assertRaises(ValueError):
+                    mapped_input("profile", Path(name))
+            (Path(directory) / "profile").mkdir()
+            outside = Path(directory) / "outside.md"
+            outside.write_text("Outside")
+            (Path(directory) / "profile/link.md").symlink_to(outside)
+            with self.assertRaises(ValueError):
+                mapped_input("profile", Path("link.md"))
+
+    def test_mapped_input_supports_nested_relative_names(self):
+        with tempfile.TemporaryDirectory() as directory, working_directory(Path(directory)):
+            path = Path(directory) / "profile/candidates"
+            path.mkdir(parents=True)
+            (path / "person.md").write_text(PROFILE)
+            self.assertEqual(read_text(mapped_input("profile", Path("candidates/person.md"))), PROFILE)
+
     def test_automatic_name_and_timezone(self):
         now = datetime(2026, 11, 4, 18, 25, 30, tzinfo=ZoneInfo("Europe/Bucharest"))
         self.assertEqual(output_stem(None, "Ana Șerban", "Backend Engineer", "Example Labs", now),
@@ -150,10 +188,9 @@ class ProviderTests(unittest.TestCase):
 class PipelineTests(unittest.TestCase):
     def run_cli(self, directory, result, *extra, provider_error=None):
         path = Path(directory)
-        (path / "profile.md").write_text(PROFILE)
-        (path / "job.txt").write_text(JOB)
-        args = ["--profile", "profile.md", "--job", "job.txt", "--template",
-                str(ROOT / "cv-templates/01-reverse-chronological.md"), "--model", "test-model", *extra]
+        prepare_workspace(path)
+        args = ["--profile", "profile.md", "--jd", "job.txt", "--template",
+                "01-reverse-chronological.md", "--model", "test-model", *extra]
         with working_directory(path), patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}), \
                 patch("personalized_cv.cli.generate", return_value=result, side_effect=provider_error):
             return main(args)
@@ -212,12 +249,11 @@ class PipelineTests(unittest.TestCase):
             root = Path(directory)
             (root / "output").mkdir()
             (root / "output/existing.pdf").write_bytes(b"original")
-            (root / "profile.md").write_text(PROFILE)
-            (root / "job.txt").write_text(JOB)
+            prepare_workspace(root)
             with working_directory(root), patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}), \
                     patch("personalized_cv.cli.generate") as provider:
-                code = main(["--profile", "profile.md", "--job", "job.txt", "--template",
-                             str(ROOT / "cv-templates/01-reverse-chronological.md"),
+                code = main(["--profile", "profile.md", "--jd", "job.txt", "--template",
+                             "01-reverse-chronological.md",
                              "--model", "test-model", "--output", "existing"])
             self.assertEqual(code, 1)
             provider.assert_not_called()

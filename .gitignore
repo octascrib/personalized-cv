@@ -9,10 +9,10 @@
 !.env.example
 
 # Candidate data and generated documents
-/private/*
-!/private/.gitkeep
-/input/*
-!/input/.gitkeep
+/profile/*
+!/profile/.gitkeep
+/jd/*
+!/jd/.gitkeep
 /output/*
 !/output/.gitkeep
 tmp/

@@ -52,7 +52,7 @@ template; it preserves employment context and a simple reading order.
 
 ## Catalog
 
-| File in `cv-templates/` | Use case | Suggested length |
+| File in `template/` | Use case | Suggested length |
 | --- | --- | --- |
 | `01-reverse-chronological.md` | Default; relevant experience, including senior roles | 1-2 pages |
 | `02-early-career.md` | Students, graduates, internships, first jobs | 1 page |
@@ -67,7 +67,7 @@ changing shared rules, update all five files and their versions.
 
 ## Application integration design
 
-1. List only `cv-templates/*.md`, read metadata, and validate the selected template.
+1. List only `template/*.md`, read metadata, and validate the selected template.
    Keep this research document outside the template catalog.
 2. An explicit user selection takes precedence. If the application recommends a
    template automatically, explain the choice using the profile and advertisement.

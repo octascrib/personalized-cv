@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 from personalized_cv.cli import main
 from personalized_cv.llm import ProviderError
 from personalized_cv.local_llm import generate_local, parse_local_response, validate_model_directory
-from test_cli import ROOT, PROFILE, JOB, fixture, working_directory
+from test_cli import PROFILE, JOB, fixture, working_directory, prepare_workspace
 
 
 class Batch(dict):
@@ -129,14 +129,13 @@ class LocalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = self.model_directory(directory)
             root = Path(directory)
-            (root / "profile.md").write_text(PROFILE)
-            (root / "job.txt").write_text(JOB)
+            prepare_workspace(root)
             with working_directory(root), patch.dict(os.environ, {"OPENAI_API_KEY": ""}), \
                     patch("personalized_cv.cli.generate_local", return_value=fixture()) as local, \
                     patch("personalized_cv.cli.generate") as openai:
                 result = main(["--provider", "local", "--model", str(path),
-                    "--profile", "profile.md", "--job", "job.txt", "--template",
-                    str(ROOT / "cv-templates/01-reverse-chronological.md"), "--output", "local-cv"])
+                    "--profile", "profile.md", "--jd", "job.txt", "--template",
+                    "01-reverse-chronological.md", "--output", "local-cv"])
             self.assertEqual(result, 0)
             local.assert_called_once()
             openai.assert_not_called()
@@ -147,13 +146,12 @@ class LocalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = self.model_directory(directory)
             root = Path(directory)
-            (root / "profile.md").write_text(PROFILE)
-            (root / "job.txt").write_text(JOB)
+            prepare_workspace(root)
             with working_directory(root), patch("personalized_cv.cli.generate") as openai, \
                     patch("personalized_cv.cli.generate_local", side_effect=ProviderError("Local failure")):
                 result = main(["--provider", "local", "--model", str(path),
-                    "--profile", "profile.md", "--job", "job.txt", "--template",
-                    str(ROOT / "cv-templates/01-reverse-chronological.md"), "--output", "failed"])
+                    "--profile", "profile.md", "--jd", "job.txt", "--template",
+                    "01-reverse-chronological.md", "--output", "failed"])
             self.assertEqual(result, 1)
             openai.assert_not_called()
             self.assertFalse((root / "output/failed.pdf").exists())
