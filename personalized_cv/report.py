@@ -6,10 +6,10 @@ from .models import GeneratedCV
 
 
 def adaptation_report(cv: GeneratedCV, metadata: dict[str, str], model: str,
-                      generated_at: datetime, verification: str) -> str:
+                      generated_at: datetime, verification: str, provider: str = "openai") -> str:
     lines = ["# CV adaptation report", "",
              f"- Template: {metadata['id']} ({metadata['version']})",
-             f"- Model: {model}", f"- Generated at: {generated_at.isoformat(timespec='seconds')}",
+             f"- Provider: {provider}", f"- Model: {model}", f"- Generated at: {generated_at.isoformat(timespec='seconds')}",
              f"- Document language: {cv.language}", f"- Verification: {verification}",
              "- Visual inspection: pending human review; not automatically verified.",
              "", "## Requirements", ""]

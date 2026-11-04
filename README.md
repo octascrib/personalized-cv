@@ -12,8 +12,8 @@ The project contains five independent Markdown templates in `cv-templates/`.
 Research, sources, and the catalog are documented in
 [docs/cv-template-research.md](docs/cv-template-research.md).
 The initial Python CLI reads a profile, a job advertisement, and a selected template;
-uses OpenAI for structured content; and generates a PDF, Markdown source, and an
-adaptation report with live terminal progress logs.
+uses OpenAI or a local safetensors model through Transformers; and generates a PDF,
+Markdown source, and an adaptation report with live terminal progress logs.
 
 See [CLI setup and usage](docs/cli.md) for installation, configuration, validation,
 and current limitations. With dependencies installed and `OPENAI_API_KEY` and
@@ -25,6 +25,11 @@ python -m personalized_cv \
   --job input/job.txt \
   --template cv-templates/01-reverse-chronological.md
 ```
+
+For offline generation from an existing model directory, install the optional
+`local` extra and add `--provider local --model private/models/my-instruct-model`.
+No OpenAI API key is required in local mode. See the CLI guide for model requirements
+and CPU/CUDA installation.
 
 Add `--output my-cv.pdf` to select a filename. Otherwise it is generated from the
 candidate name, job title, company, and generation timestamp. Results go to `output/`.

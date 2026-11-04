@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .files import output_stem, read_text, reserve_outputs, template_metadata
 from .llm import ProviderError, generate
+from .local_llm import generate_local, validate_model_directory
 from .render import find_fonts, markdown, render_pdf, verify_pdf
 from .report import adaptation_report
 
@@ -27,32 +28,45 @@ def positive_timeout(value: str) -> float:
     return number
 
 
+def positive_integer(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("token budget must be a positive integer")
+    return number
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        description="Tailor a CV using OpenAI and export a selectable-text PDF into output/.",
-        epilog="The profile, job advertisement, and template are sent to OpenAI. "
+        description="Tailor a CV using OpenAI or a local model and export a selectable-text PDF into output/.",
+        epilog="OpenAI mode sends inputs to OpenAI. Local mode loads an existing model directory offline. "
                "Review the generated CV and report before applying.",
     )
     result.add_argument("--profile", required=True, type=Path, help="UTF-8 candidate profile (.md or .txt)")
     result.add_argument("--job", required=True, type=Path, help="UTF-8 job advertisement (.md or .txt)")
     result.add_argument("--template", required=True, type=Path, help="Markdown template file")
     result.add_argument("--output", help="Optional filename inside output/; .pdf is optional")
-    result.add_argument("--model", default=os.environ.get("OPENAI_MODEL"), help="Model ID; defaults to OPENAI_MODEL")
+    result.add_argument("--provider", choices=("openai", "local"), default=os.environ.get("CV_PROVIDER", "openai"),
+                        help="Generation backend (default: CV_PROVIDER or openai)")
+    result.add_argument("--model", help="OpenAI model ID or local model directory; defaults to OPENAI_MODEL or LOCAL_MODEL")
+    result.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto",
+                        help="Local model device; auto selects CUDA if available, otherwise CPU")
+    result.add_argument("--max-new-tokens", type=positive_integer, default=8192,
+                        help="Local generation token budget (default: 8192)")
     result.add_argument("--language", help="Output language; defaults to the advertisement language")
     result.add_argument("--timezone", default=os.environ.get("CV_TIMEZONE"),
                         help="IANA timezone for filenames; defaults to the system local timezone")
-    result.add_argument("--timeout", type=positive_timeout, default=180, help="Provider timeout in seconds (default: 180)")
+    result.add_argument("--timeout", type=positive_timeout, default=180, help="OpenAI request timeout in seconds (default: 180); not used locally")
     result.add_argument("--font-dir", type=Path, help="Directory containing DejaVuSans.ttf and DejaVuSans-Bold.ttf")
     return result
 
 
 @contextmanager
-def progress():
+def progress(activity: str = "Waiting for the model response"):
     stop = Event()
     started = time.monotonic()
     def heartbeat():
         while not stop.wait(10):
-            LOG.info("Waiting for the model response (%ds elapsed)...", time.monotonic() - started)
+            LOG.info("%s (%ds elapsed)...", activity, time.monotonic() - started)
     thread = Thread(target=heartbeat, daemon=True)
     thread.start()
     try:
@@ -71,11 +85,19 @@ def run(args: argparse.Namespace) -> int:
     timezone = ZoneInfo(args.timezone) if args.timezone else None
     if args.output is not None:
         output_stem(args.output, "", "", "", datetime.now())
+    if args.provider not in ("openai", "local"):
+        raise ValueError("CV_PROVIDER must be openai or local.")
+    model_variable = "OPENAI_MODEL" if args.provider == "openai" else "LOCAL_MODEL"
+    args.model = args.model or os.environ.get(model_variable)
     if not args.model or not args.model.strip():
-        raise ValueError("Choose a model with --model or OPENAI_MODEL.")
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        raise ValueError("Set OPENAI_API_KEY in your environment before generating a CV.")
+        raise ValueError(f"Choose a model with --model or {model_variable}.")
+    api_key = ""
+    if args.provider == "openai":
+        api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+        if not api_key:
+            raise ValueError("Set OPENAI_API_KEY in your environment before generating a CV.")
+    else:
+        validate_model_directory(args.model)
     # Setting the environment is intentional: .env files are not silently loaded.
     output_dir = Path.cwd() / "output"
     output_dir.mkdir(exist_ok=True)
@@ -86,9 +108,15 @@ def run(args: argparse.Namespace) -> int:
             stem = output_stem(args.output, "", "", "", datetime.now())
             paths = reserve_outputs(output_dir, stem, automatic=False)
         LOG.info("Template selected: %s, version %s", metadata["id"], metadata["version"])
-        LOG.info("Sending profile, advertisement, and template to OpenAI; generating tailored content...")
-        with progress():
-            cv = generate(profile, job, template, args.language, args.model, api_key, args.timeout)
+        if args.provider == "openai":
+            LOG.info("Sending profile, advertisement, and template to OpenAI; generating tailored content...")
+            with progress():
+                cv = generate(profile, job, template, args.language, args.model, api_key, args.timeout)
+        else:
+            LOG.info("Using the local backend; profile and advertisement remain on this machine.")
+            with progress("Local model processing"):
+                cv = generate_local(profile, job, template, args.language, args.model,
+                                    args.device, args.max_new_tokens)
         # Page limits are application/template policy, never a model-controlled override.
         limit = metadata.get("max_pages", "2")
         cv.max_pages = None if limit == "null" else int(limit)
@@ -104,7 +132,7 @@ def run(args: argparse.Namespace) -> int:
             paths = reserve_outputs(output_dir, stem, automatic=True)
         LOG.info("Saving the adaptation report and checking source quotations...")
         paths["report"].write_text(adaptation_report(
-            cv, metadata, args.model, generated_at, "not yet performed"), encoding="utf-8")
+            cv, metadata, args.model, generated_at, "not yet performed", args.provider), encoding="utf-8")
         report_saved = True
         cv.validate_sources(profile, job)
         if any(not section.heading.strip() or not section.entries for section in cv.sections):
@@ -120,7 +148,7 @@ def run(args: argparse.Namespace) -> int:
         pages = verify_pdf(cv, paths["pdf"])
         paths["report"].write_text(adaptation_report(
             cv, metadata, args.model, generated_at,
-            f"text extraction and order checked; {pages} page(s) within the declared limit"), encoding="utf-8")
+            f"text extraction and order checked; {pages} page(s) within the declared limit", args.provider), encoding="utf-8")
         LOG.info("Done in %.1fs. PDF: %s", time.monotonic() - started, paths["pdf"])
         LOG.info("CV source: %s", paths["markdown"])
         LOG.info("Adaptation report: %s", paths["report"])

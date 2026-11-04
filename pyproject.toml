@@ -9,6 +9,9 @@ description = "Tailor a CV to a job advertisement and render a text-based PDF."
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2.10,<3", "reportlab>=4.2,<5", "pypdf>=5,<7"]
 
+[project.optional-dependencies]
+local = ["torch>=2.6,<3", "transformers>=4.56,<6", "safetensors>=0.4.5,<1"]
+
 [project.scripts]
 personalized-cv = "personalized_cv.cli:main"
 

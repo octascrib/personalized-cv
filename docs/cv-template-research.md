@@ -80,7 +80,8 @@ changing shared rules, update all five files and their versions.
    and layout. Before sending data to an LLM provider, explain what personal data
    will be sent and to whom. Avoid logging profiles or API keys.
 
-**Current status:** the initial CLI integrates OpenAI structured output, exact
+**Current status:** the CLI integrates OpenAI structured output and local
+Transformers/safetensors inference, exact
 source-quotation checks, PDF rendering, and text extraction checks. Visual inspection
 remains manual. No real ATS portal validation or live-provider generation has been
 performed. See [CLI usage and limitations](cli.md).

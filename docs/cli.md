@@ -13,13 +13,13 @@ python -m pip install -e .
 Install DejaVu Sans fonts through your operating system, or provide a directory
 containing `DejaVuSans.ttf` and `DejaVuSans-Bold.ttf` with `--font-dir`.
 
-The initial provider is OpenAI's Responses API. Set `OPENAI_API_KEY` and
+The default provider is OpenAI's Responses API. Set `OPENAI_API_KEY` and
 `OPENAI_MODEL` in your shell. Choose a model available to your account that supports
 Structured Outputs. There is deliberately no hard-coded model selection. A `.env`
 file is not loaded automatically; `.env.example` lists the environment variables.
 Avoid entering credentials in a command that will be retained in shell history.
 
-The entire profile, job advertisement, and template are sent to OpenAI. The request
+In OpenAI mode, the entire profile, job advertisement, and template are sent to OpenAI. The request
 sets `store` to `false`; this is not a guarantee of zero provider-side retention.
 Review the provider's applicable data handling terms before sending personal data.
 No real API call is made during the automated tests.
@@ -40,8 +40,8 @@ python -m personalized_cv \
   --template cv-templates/01-reverse-chronological.md
 ```
 
-The three file arguments are required. Set the model with `OPENAI_MODEL` or the
-optional `--model` flag. The installed `personalized-cv` command accepts the same
+The three file arguments are required. Set the OpenAI model with `OPENAI_MODEL` or the
+optional `--model` flag. Use `--provider local` for direct offline inference. The installed `personalized-cv` command accepts the same
 arguments as `python -m personalized_cv`.
 
 To choose the output filename:
@@ -86,6 +86,83 @@ All three files contain private data and are excluded from Git under `output/`.
 Reports are written in English; CV content follows `--language` or the advertisement
 language. Proper names, original job titles, and quotations retain their source text.
 
+## Local safetensors inference
+
+Safetensors stores model weights; it is not an inference engine or a complete model
+by itself. The local backend uses PyTorch and Hugging Face Transformers directly.
+LangChain is not needed for this single-generation workflow. Both backends return
+the same structured CV model and share source checks, rendering, naming, and reports.
+
+Install the optional local dependencies into your virtual environment:
+
+```bash
+python -m pip install -e '.[local]'
+```
+
+For a CPU-only environment, install a CPU build of PyTorch first, then the extra:
+
+```bash
+python -m pip install 'torch>=2.6,<3' --index-url https://download.pytorch.org/whl/cpu
+python -m pip install -e '.[local]'
+```
+
+Use a complete, already-downloaded instruction/chat causal language model supported
+by `AutoModelForCausalLM`, with `config.json`, `.safetensors` weights (including all
+shards if applicable), and its matching tokenizer files and chat template. The chat
+template must support system and user messages. A standalone weights file, LoRA
+adapter, base model without a chat template, or an arbitrary safetensors checkpoint
+is not sufficient. Quantized models requiring additional backends are not configured
+by this initial adapter. Check model licensing before obtaining or using weights.
+
+Keep the complete model under `private/models/` or outside the repository. Never
+commit weights. The application does not download models automatically or execute
+custom model code (`trust_remote_code=False`). It passes `local_files_only=True`
+for tokenizer/model loading and requires `use_safetensors=True` for the weights.
+
+```bash
+python -m personalized_cv \
+  --provider local \
+  --model private/models/my-instruct-model \
+  --profile private/profile.md \
+  --job input/job.txt \
+  --template cv-templates/03-technical.md \
+  --device cpu \
+  --max-new-tokens 4096
+```
+
+`CV_PROVIDER` selects the default backend (`openai` or `local`). If `--model` is
+omitted, local mode reads `LOCAL_MODEL` and OpenAI mode reads `OPENAI_MODEL`. Local
+mode needs no API key and never falls back to cloud inference, including on failure.
+Installing dependencies or manually downloading a model requires network access;
+local generation from an existing directory does not send profile or advertisement
+data to a provider.
+
+`--device auto` selects CUDA when available, otherwise CPU. Explicit `--device cuda`
+fails if CUDA is unavailable. CPU inference uses float32 weights; CUDA uses float16.
+RAM/VRAM requirements depend on model size; CPU execution can be slow. There is no
+quantization, disk offloading, MPS support, or persistent model server in this version.
+
+`--max-new-tokens` defaults to 8192. The schema and template add to the prompt length;
+the prompt plus token budget must fit the model's declared context window. Inputs
+are not silently truncated. Choose a sufficient context window or reduce the input
+length/token budget. `--timeout` controls only OpenAI requests; local loading and
+generation are bounded by resources and the token budget, and can be cancelled
+with Ctrl+C.
+
+Local decoding is greedy and asks for JSON matching the same schema. Unlike OpenAI
+Structured Outputs, this prompt does not enforce the JSON grammar during decoding.
+Invalid or truncated JSON fails validation without creating a final PDF. A single
+JSON code fence is accepted; surrounding explanations are not silently discarded.
+Content quality and schema adherence depend on the selected model.
+
+Terminal logs distinguish loading the tokenizer/weights, local generation, JSON
+validation, and PDF work, with a heartbeat while loading/generating. Reports identify
+both the provider and model. No candidate input is printed in progress messages.
+
+Implementation references: [Transformers chat templates](https://huggingface.co/docs/transformers/v5.20.2/chat_templating),
+[model loading](https://huggingface.co/docs/transformers/en/main_classes/model), and
+[installation and offline mode](https://huggingface.co/docs/transformers/en/installation).
+
 ## Progress and errors
 
 Progress messages go directly to stderr, including when output is redirected:
@@ -104,7 +181,7 @@ Progress messages go directly to stderr, including when output is redirected:
 These messages describe actual workflow stages, not token-by-token model reasoning
 or a simulated completion percentage. Logs do not include profile content or keys;
 output paths can contain the candidate name because of the requested filename format.
-The provider timeout defaults to 180 seconds and can be changed with `--timeout`.
+The OpenAI request timeout defaults to 180 seconds and can be changed with `--timeout`.
 There are no automatic paid retries.
 
 Exit codes: `0` for success, `1` for generation/validation failure, `2` for argument
@@ -143,5 +220,13 @@ python -m unittest discover -s tests -v
 
 Tests use synthetic data, mocked provider responses, and real PDF rendering and text
 extraction. They cover safe naming, timezone formatting, collisions, input validation,
-source checks, provider errors, page limits, and the end-to-end local workflow.
-A real provider request must still be validated with your chosen model and key.
+source checks, provider errors, page limits, the end-to-end PDF workflow, local backend routing, context limits, and offline
+loading flags. Local model calls in the default suite use a mocked Transformers
+runtime. With the local extra installed, an additional test creates a tiny random
+model, saves real safetensors weights, reloads them, tokenizes a chat prompt, and
+runs CPU generation before checking rejection of its invalid CV JSON. This proves
+the inference path works, not that the random model can write CVs. The runtime smoke
+test passed with PyTorch 2.15.0+cpu and Transformers 5.22.1.
+
+Real CV quality must still be validated with your chosen OpenAI model and key or a
+downloaded instruction-tuned local model. GPU execution has not been tested.
