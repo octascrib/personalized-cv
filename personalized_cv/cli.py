@@ -17,7 +17,7 @@ from .llm import ProviderError, generate
 from .local_llm import generate_local, validate_model_directory
 from .render import find_fonts, markdown, render_pdf, verify_pdf
 from .report import adaptation_report
-from .settings import load_setup, resolve_settings, save_setup
+from .settings import load_setup, normalize_provider, resolve_settings, save_setup, selected_provider, setup_path
 
 LOG = logging.getLogger("personalized_cv")
 
@@ -42,13 +42,13 @@ def parser() -> argparse.ArgumentParser:
         epilog="OpenAI mode sends inputs to OpenAI. Local mode loads an existing model directory offline. "
                "Review the generated CV and report before applying.",
     )
-    result.add_argument("--setup", action="store_true", help="Save provider and LLM defaults in project setup.json; no generation")
+    result.add_argument("--setup", choices=("local", "remote"), help="Save setup-local.json or setup-remote.json; no generation")
     result.add_argument("--profile", type=Path, help="UTF-8 candidate filename relative to profile/ (.md or .txt)")
     result.add_argument("--jd", type=Path, help="UTF-8 job description filename relative to jd/ (.md or .txt)")
     result.add_argument("--template", type=Path, help="Markdown template filename relative to template/")
     result.add_argument("--output", help="Optional filename inside output/; .pdf is optional")
-    result.add_argument("--provider", choices=("openai", "local"), default=None,
-                        help="Generation backend; overrides setup.json, then CV_PROVIDER or openai")
+    result.add_argument("--provider", choices=("local", "remote", "openai"), default=None,
+                        help="Select local or remote setup; openai aliases remote (default: CV_PROVIDER or local)")
     result.add_argument("--llm", "--model", dest="model", help="OpenAI model ID or local model name relative to llm/; --model is an alias")
     result.add_argument("--device", choices=("auto", "cpu", "cuda"), default=None,
                         help="Local model device; auto selects CUDA if available, otherwise CPU")
@@ -174,15 +174,20 @@ def main(argv: list[str] | None = None) -> int:
     argument_parser = parser()
     args = argument_parser.parse_args(argv)
     if args.setup:
-        if not args.provider or not args.model:
-            argument_parser.error("--setup requires --provider and --llm (or --model)")
+        if not args.model:
+            argument_parser.error("--setup requires --llm (or --model)")
+        if args.provider and normalize_provider(args.provider) != normalize_provider(args.setup):
+            argument_parser.error("--provider conflicts with the selected --setup mode")
+        args.provider = normalize_provider(args.setup)
         if any((args.profile, args.jd, args.template, args.output)):
             argument_parser.error("--setup cannot be combined with generation input/output arguments")
     elif not all((args.profile, args.jd, args.template)):
         argument_parser.error("generation requires --profile, --jd, and --template")
     try:
         # Setup replaces defaults without depending on a previous, possibly broken file.
-        saved = None if args.setup else load_setup()
+        if not args.setup:
+            args.provider = selected_provider(args)
+        saved = None if args.setup else load_setup(args.provider)
         settings = resolve_settings(args, saved)
         if args.setup:
             path = save_setup(settings)
@@ -191,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
                 LOG.warning("The local model is not installed yet. Place its complete files in llm/%s before generation.", settings.llm)
             return 0
         if saved:
-            LOG.info("Loaded project defaults from setup.json.")
+            LOG.info("Loaded project defaults from %s.", setup_path(settings.provider).name)
         args.provider, args.model = settings.provider, settings.llm
         for field in ("device", "max_new_tokens", "timeout", "language", "timezone"):
             setattr(args, field, getattr(settings, field))

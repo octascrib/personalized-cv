@@ -13,7 +13,7 @@ python -m pip install -e .
 Install DejaVu Sans fonts through your operating system, or provide a directory
 containing `DejaVuSans.ttf` and `DejaVuSans-Bold.ttf` with `--font-dir`.
 
-The default provider is OpenAI's Responses API. Set `OPENAI_API_KEY` and
+Remote mode uses OpenAI's Responses API; local mode is the default. Set `OPENAI_API_KEY` and
 `OPENAI_MODEL` in your shell. Choose a model available to your account that supports
 Structured Outputs. There is deliberately no hard-coded model selection. A `.env`
 file is not loaded automatically; `.env.example` lists the environment variables.
@@ -27,25 +27,26 @@ No real API call is made during the automated tests.
 API implementation reference:
 [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
 
-## One-time project setup
+## Separate local and remote setups
 
-Configure the provider and model without supplying generation inputs:
+Configure each mode independently, without generation inputs:
 
 ```bash
-.venv/bin/python -m personalized_cv --setup --provider local --llm my-instruct-model
+.venv/bin/python -m personalized_cv --setup local --llm my-instruct-model
+.venv/bin/python -m personalized_cv --setup remote --llm YOUR_OPENAI_MODEL
 ```
 
-The name resolves to `llm/my-instruct-model/`. Setup writes non-secret defaults to
-`setup.json` in the current project root; it performs no download, model loading,
-or inference and does not require an API key. A missing local model directory is
-reported as a warning, so it can be installed before the first generation.
+These commands create `setup-local.json` and `setup-remote.json` in the current
+project root. Local LLM names resolve inside `llm/`. Remote currently uses OpenAI.
+Setup performs no download, model loading, or inference and does not require an API
+key. A missing local model directory produces a warning; install it before generation.
 
-For OpenAI use `--setup --provider openai --llm YOUR_OPENAI_MODEL`. API keys remain
-in `OPENAI_API_KEY`, never in the setup file. Both `--provider` and `--llm` (or its
-`--model` alias) must be explicit for setup. Do not combine setup with profile, job,
-template, or output arguments.
+`--setup` requires the value `local` or `remote` and an explicit `--llm` (or its
+`--model` alias). Do not combine setup with generation inputs or output. A redundant
+`--provider` must match the setup mode. Rerunning setup replaces only that mode's
+file atomically and can repair a malformed selected file.
 
-Example saved defaults:
+A local setup contains:
 
 ```json
 {
@@ -61,15 +62,25 @@ Example saved defaults:
 }
 ```
 
-You can save `--device`, `--max-new-tokens`, `--timeout`, `--language`, `--timezone`,
-and `--font-dir` during setup. Rerunning setup replaces the previous configuration
-atomically; it also repairs an invalid setup file. An invalid or unsupported file
-blocks ordinary generation with a clear error rather than silently changing backend.
+The remote file stores `provider: "openai"` to identify the underlying implementation.
+API keys remain in `OPENAI_API_KEY`, never in configuration files. You can also save
+`--device`, `--max-new-tokens`, `--timeout`, `--language`, `--timezone`, and `--font-dir`.
+Both setup files and model weights are excluded from Git.
 
-Generation precedence is explicit CLI flags, then saved setup defaults, then environment
-fallbacks, then built-in defaults. Switching providers explicitly never reuses the
-other provider's saved LLM. CLI overrides affect only that invocation. The setup file
-and all contents of `llm/` except `.gitkeep` are excluded from Git.
+Choose `--provider local` or `--provider remote` at generation time to load the
+matching setup. `--provider openai` aliases remote. Without a flag, `CV_PROVIDER`
+is used if set; otherwise the default is **local**, regardless of which setup files
+exist. An invalid selected configuration fails; the other file is never consulted.
+
+CLI overrides take precedence over the selected setup, followed by environment
+fallbacks and built-in defaults. Overrides do not modify either file. When no
+matching setup exists, an explicit LLM or the corresponding model environment
+variable can still configure a run. Neither model names nor generation options are
+borrowed from the other backend. A failure in either backend returns an error;
+there is no fallback in either direction and no final PDF is kept on failure.
+
+The previous `setup.json` is no longer loaded. Run the appropriate setup command
+to create the new files; an existing legacy file is left untouched and remains ignored.
 
 ## Generate a CV
 
@@ -79,13 +90,14 @@ repository root:
 
 ```bash
 python -m personalized_cv \
+  --provider remote \
   --profile profile.md \
   --jd job.txt \
   --template 01-reverse-chronological.md
 ```
 
 The three file arguments are required for generation; provider and LLM are read
-from `setup.json` when available. They are resolved relative to designated
+from the selected setup file when available. They are resolved relative to designated
 directories in the current working directory:
 
 | Argument | Example | Resolved file |
@@ -108,6 +120,7 @@ To choose the output filename:
 
 ```bash
 python -m personalized_cv \
+  --provider remote \
   --profile profile.md \
   --jd job.txt \
   --template 03-technical.md \
@@ -193,10 +206,10 @@ python -m personalized_cv \
 
 `--llm` (`--model` is an alias) takes a model name or relative subdirectory inside
 `llm/` in local mode, and an API model ID in OpenAI mode. Absolute paths and directory
-escapes are rejected for local names. `setup.json` provides saved defaults; without
+escapes are rejected for local names. The selected setup file provides saved defaults; without
 setup, `CV_PROVIDER`, `LOCAL_MODEL`, and `OPENAI_MODEL` remain supported. `LOCAL_MODEL`
 also takes a name relative to `llm/`, not a full filesystem path. Local
-mode needs no API key and never falls back to cloud inference, including on failure.
+mode needs no API key. Neither backend falls back to the other on failure.
 Installing dependencies or manually downloading a model requires network access;
 local generation from an existing directory does not send profile or advertisement
 data to a provider.

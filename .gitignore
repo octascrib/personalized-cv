@@ -10,6 +10,8 @@
 
 # Local project defaults
 /setup.json
+/setup-local.json
+/setup-remote.json
 /.setup-*.tmp
 
 # Candidate data, model weights, and generated documents

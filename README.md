@@ -22,53 +22,67 @@ For local models, also install the optional dependencies:
 Install DejaVu Sans fonts through your operating system. See the
 [CLI guide](docs/cli.md) for CPU-only PyTorch installation and font configuration.
 
-## Set up once
+## Configure local and remote modes
 
 For a local model, put its complete files in `llm/my-instruct-model/`, including
 `config.json`, safetensors weights, and the matching tokenizer and chat template.
-Then run:
+Save local defaults once:
 
 ```bash
-.venv/bin/python -m personalized_cv --setup --provider local --llm my-instruct-model
+.venv/bin/python -m personalized_cv --setup local --llm my-instruct-model
 ```
 
-This creates `setup.json` in the project root. Setup saves defaults only: it does
-not download, load, or run the model. You may configure the name before installing
-the model, but its complete files must be present before generating a CV.
-
-For OpenAI instead, choose a model available to your account that supports
-Structured Outputs and set the `OPENAI_API_KEY` environment variable for generation:
+This creates `setup-local.json`. To also configure OpenAI, choose an available model
+supporting Structured Outputs and run:
 
 ```bash
-.venv/bin/python -m personalized_cv --setup --provider openai --llm YOUR_OPENAI_MODEL
+.venv/bin/python -m personalized_cv --setup remote --llm YOUR_OPENAI_MODEL
 ```
 
-The API key is never saved in `setup.json`. Both this file and model weights are
-excluded from Git. Rerun setup to replace the saved defaults. `--model` is an alias
-for `--llm`; local model names are always resolved inside `llm/`.
+This creates `setup-remote.json` without changing the local setup. Set
+`OPENAI_API_KEY` in the environment before remote generation; keys are never saved
+in either setup file. Setup saves configuration only: no downloads, model loading,
+or inference. Repeating setup replaces only the selected mode's defaults.
+`--model` remains an alias for `--llm`.
 
 ## Generate whenever needed
 
-Save a UTF-8 candidate profile in `profile/profile.md` and a job advertisement in
-`jd/job.txt`, then run:
+Save a UTF-8 profile in `profile/profile.md` and a job advertisement in `jd/job.txt`.
+Choose local processing explicitly:
 
 ```bash
 .venv/bin/python -m personalized_cv \
+  --provider local \
   --profile profile.md \
   --jd job.txt \
   --template 01-reverse-chronological.md
 ```
 
-The command reads the provider and LLM from `setup.json`. Input names map to
-`profile/`, `jd/`, and `template/`, respectively. Add `--output my-cv.pdf` to choose
-a filename; otherwise it uses the candidate name, job title, company, date, and time.
-The PDF, Markdown source, and report are saved in `output/` without overwriting
-existing files.
+To use OpenAI for an application, change the provider:
 
-Explicit flags override saved defaults for that run without changing `setup.json`.
-Saved defaults override environment defaults. Local mode needs no API key and never
-falls back to cloud inference. Review the CV and adaptation report before applying;
-source checks cannot guarantee factual accuracy or ATS acceptance.
+```bash
+.venv/bin/python -m personalized_cv \
+  --provider remote \
+  --profile profile.md \
+  --jd job.txt \
+  --template 01-reverse-chronological.md
+```
+
+`local` reads `setup-local.json`; `remote` reads `setup-remote.json` and sends inputs
+to OpenAI. `--provider openai` is an alias for `remote`. With no provider flag,
+`CV_PROVIDER` is used if set; otherwise local mode is selected, even if only a
+remote setup exists. Neither backend automatically falls back to the other on
+errors: generation exits with an error and no final PDF.
+
+Input names map to `profile/`, `jd/`, and `template/`. Add `--output my-cv.pdf` to
+choose a filename; otherwise it uses the candidate name, job title, company, date,
+and time. Results go to `output/` without overwriting existing files.
+
+Explicit flags override the selected setup for that run without modifying it.
+Saved defaults override environment defaults. If the selected setup is absent,
+provide an LLM explicitly or through the corresponding environment variable;
+the other mode's setup is never used. Review the CV and adaptation report before
+applying; source checks cannot guarantee factual accuracy or ATS acceptance.
 
 ## Templates and documentation
 
@@ -88,6 +102,6 @@ use the user's chosen language; candidate data and generated documents stay out 
 - `output/`: generated CVs and reports.
 
 Only each directory's root `.gitkeep` is tracked; all other files and subdirectories
-are ignored. `setup.json`, temporary setup files, and `.env` credentials are also
+are ignored. `setup-local.json`, `setup-remote.json`, temporary setup files, and `.env` credentials are also
 ignored. Do not force-add private documents or weights. Environment variables must
 be exported in your shell; `.env` is not loaded automatically.

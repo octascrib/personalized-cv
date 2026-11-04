@@ -189,7 +189,7 @@ class PipelineTests(unittest.TestCase):
     def run_cli(self, directory, result, *extra, provider_error=None):
         path = Path(directory)
         prepare_workspace(path)
-        args = ["--profile", "profile.md", "--jd", "job.txt", "--template",
+        args = ["--provider", "remote", "--profile", "profile.md", "--jd", "job.txt", "--template",
                 "01-reverse-chronological.md", "--model", "test-model", *extra]
         with working_directory(path), patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}), \
                 patch("personalized_cv.cli.generate", return_value=result, side_effect=provider_error):
@@ -252,7 +252,7 @@ class PipelineTests(unittest.TestCase):
             prepare_workspace(root)
             with working_directory(root), patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}), \
                     patch("personalized_cv.cli.generate") as provider:
-                code = main(["--profile", "profile.md", "--jd", "job.txt", "--template",
+                code = main(["--provider", "remote", "--profile", "profile.md", "--jd", "job.txt", "--template",
                              "01-reverse-chronological.md",
                              "--model", "test-model", "--output", "existing"])
             self.assertEqual(code, 1)
