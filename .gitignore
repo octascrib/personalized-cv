@@ -8,11 +8,17 @@
 .env.*
 !.env.example
 
-# Candidate data and generated documents
+# Local project defaults
+/setup.json
+/.setup-*.tmp
+
+# Candidate data, model weights, and generated documents
 /profile/*
 !/profile/.gitkeep
 /jd/*
 !/jd/.gitkeep
+/llm/*
+!/llm/.gitkeep
 /output/*
 !/output/.gitkeep
 tmp/

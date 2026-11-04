@@ -27,6 +27,50 @@ No real API call is made during the automated tests.
 API implementation reference:
 [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
 
+## One-time project setup
+
+Configure the provider and model without supplying generation inputs:
+
+```bash
+.venv/bin/python -m personalized_cv --setup --provider local --llm my-instruct-model
+```
+
+The name resolves to `llm/my-instruct-model/`. Setup writes non-secret defaults to
+`setup.json` in the current project root; it performs no download, model loading,
+or inference and does not require an API key. A missing local model directory is
+reported as a warning, so it can be installed before the first generation.
+
+For OpenAI use `--setup --provider openai --llm YOUR_OPENAI_MODEL`. API keys remain
+in `OPENAI_API_KEY`, never in the setup file. Both `--provider` and `--llm` (or its
+`--model` alias) must be explicit for setup. Do not combine setup with profile, job,
+template, or output arguments.
+
+Example saved defaults:
+
+```json
+{
+  "version": 1,
+  "provider": "local",
+  "llm": "my-instruct-model",
+  "device": "auto",
+  "max_new_tokens": 8192,
+  "timeout": 180,
+  "language": null,
+  "timezone": null,
+  "font_dir": null
+}
+```
+
+You can save `--device`, `--max-new-tokens`, `--timeout`, `--language`, `--timezone`,
+and `--font-dir` during setup. Rerunning setup replaces the previous configuration
+atomically; it also repairs an invalid setup file. An invalid or unsupported file
+blocks ordinary generation with a clear error rather than silently changing backend.
+
+Generation precedence is explicit CLI flags, then saved setup defaults, then environment
+fallbacks, then built-in defaults. Switching providers explicitly never reuses the
+other provider's saved LLM. CLI overrides affect only that invocation. The setup file
+and all contents of `llm/` except `.gitkeep` are excluded from Git.
+
 ## Generate a CV
 
 Create your UTF-8 profile in `profile/profile.md` and paste the job advertisement
@@ -40,7 +84,8 @@ python -m personalized_cv \
   --template 01-reverse-chronological.md
 ```
 
-The three file arguments are required. They are resolved relative to designated
+The three file arguments are required for generation; provider and LLM are read
+from `setup.json` when available. They are resolved relative to designated
 directories in the current working directory:
 
 | Argument | Example | Resolved file |
@@ -55,9 +100,9 @@ Absolute paths, parent-directory traversal, and symlinks escaping that directory
 rejected. Root-level files with the same name are not used as fallbacks. The job
 description argument is named `--jd`; the previous `--job` flag has been removed.
 
- Set the OpenAI model with `OPENAI_MODEL` or the
-optional `--model` flag. Use `--provider local` for direct offline inference. The installed `personalized-cv` command accepts the same
-arguments as `python -m personalized_cv`.
+Without setup, set the OpenAI model with `OPENAI_MODEL` or the optional `--llm` flag.
+Use `--provider local` for direct offline inference. The installed `personalized-cv`
+command accepts the same arguments as `python -m personalized_cv`.
 
 To choose the output filename:
 
@@ -121,7 +166,7 @@ python -m pip install 'torch>=2.6,<3' --index-url https://download.pytorch.org/w
 python -m pip install -e '.[local]'
 ```
 
-Use a complete, already-downloaded instruction/chat causal language model supported
+For generation, use a complete, already-downloaded instruction/chat causal language model supported
 by `AutoModelForCausalLM`, with `config.json`, `.safetensors` weights (including all
 shards if applicable), and its matching tokenizer files and chat template. The chat
 template must support system and user messages. A standalone weights file, LoRA
@@ -129,7 +174,8 @@ adapter, base model without a chat template, or an arbitrary safetensors checkpo
 is not sufficient. Quantized models requiring additional backends are not configured
 by this initial adapter. Check model licensing before obtaining or using weights.
 
-Keep the complete model under `profile/models/` or outside the repository. Never
+Keep each complete local model in its own directory under `llm/`, for example
+`llm/my-instruct-model/`. Never
 commit weights. The application does not download models automatically or execute
 custom model code (`trust_remote_code=False`). It passes `local_files_only=True`
 for tokenizer/model loading and requires `use_safetensors=True` for the weights.
@@ -137,7 +183,7 @@ for tokenizer/model loading and requires `use_safetensors=True` for the weights.
 ```bash
 python -m personalized_cv \
   --provider local \
-  --model profile/models/my-instruct-model \
+  --llm my-instruct-model \
   --profile profile.md \
   --jd job.txt \
   --template 03-technical.md \
@@ -145,8 +191,11 @@ python -m personalized_cv \
   --max-new-tokens 4096
 ```
 
-`CV_PROVIDER` selects the default backend (`openai` or `local`). If `--model` is
-omitted, local mode reads `LOCAL_MODEL` and OpenAI mode reads `OPENAI_MODEL`. Local
+`--llm` (`--model` is an alias) takes a model name or relative subdirectory inside
+`llm/` in local mode, and an API model ID in OpenAI mode. Absolute paths and directory
+escapes are rejected for local names. `setup.json` provides saved defaults; without
+setup, `CV_PROVIDER`, `LOCAL_MODEL`, and `OPENAI_MODEL` remain supported. `LOCAL_MODEL`
+also takes a name relative to `llm/`, not a full filesystem path. Local
 mode needs no API key and never falls back to cloud inference, including on failure.
 Installing dependencies or manually downloading a model requires network access;
 local generation from an existing directory does not send profile or advertisement

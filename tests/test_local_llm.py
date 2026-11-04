@@ -23,8 +23,8 @@ class Batch(dict):
 
 class LocalTests(unittest.TestCase):
     def model_directory(self, root):
-        path = Path(root) / "model"
-        path.mkdir()
+        path = Path(root) / "llm" / "model"
+        path.mkdir(parents=True)
         (path / "config.json").write_text("{}")
         (path / "model.safetensors").touch()
         return path
@@ -133,7 +133,7 @@ class LocalTests(unittest.TestCase):
             with working_directory(root), patch.dict(os.environ, {"OPENAI_API_KEY": ""}), \
                     patch("personalized_cv.cli.generate_local", return_value=fixture()) as local, \
                     patch("personalized_cv.cli.generate") as openai:
-                result = main(["--provider", "local", "--model", str(path),
+                result = main(["--provider", "local", "--llm", "model",
                     "--profile", "profile.md", "--jd", "job.txt", "--template",
                     "01-reverse-chronological.md", "--output", "local-cv"])
             self.assertEqual(result, 0)
@@ -149,7 +149,7 @@ class LocalTests(unittest.TestCase):
             prepare_workspace(root)
             with working_directory(root), patch("personalized_cv.cli.generate") as openai, \
                     patch("personalized_cv.cli.generate_local", side_effect=ProviderError("Local failure")):
-                result = main(["--provider", "local", "--model", str(path),
+                result = main(["--provider", "local", "--llm", "model",
                     "--profile", "profile.md", "--jd", "job.txt", "--template",
                     "01-reverse-chronological.md", "--output", "failed"])
             self.assertEqual(result, 1)

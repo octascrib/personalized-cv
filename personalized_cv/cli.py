@@ -17,6 +17,7 @@ from .llm import ProviderError, generate
 from .local_llm import generate_local, validate_model_directory
 from .render import find_fonts, markdown, render_pdf, verify_pdf
 from .report import adaptation_report
+from .settings import load_setup, resolve_settings, save_setup
 
 LOG = logging.getLogger("personalized_cv")
 
@@ -41,21 +42,22 @@ def parser() -> argparse.ArgumentParser:
         epilog="OpenAI mode sends inputs to OpenAI. Local mode loads an existing model directory offline. "
                "Review the generated CV and report before applying.",
     )
-    result.add_argument("--profile", required=True, type=Path, help="UTF-8 candidate filename relative to profile/ (.md or .txt)")
-    result.add_argument("--jd", required=True, type=Path, help="UTF-8 job description filename relative to jd/ (.md or .txt)")
-    result.add_argument("--template", required=True, type=Path, help="Markdown template filename relative to template/")
+    result.add_argument("--setup", action="store_true", help="Save provider and LLM defaults in project setup.json; no generation")
+    result.add_argument("--profile", type=Path, help="UTF-8 candidate filename relative to profile/ (.md or .txt)")
+    result.add_argument("--jd", type=Path, help="UTF-8 job description filename relative to jd/ (.md or .txt)")
+    result.add_argument("--template", type=Path, help="Markdown template filename relative to template/")
     result.add_argument("--output", help="Optional filename inside output/; .pdf is optional")
-    result.add_argument("--provider", choices=("openai", "local"), default=os.environ.get("CV_PROVIDER", "openai"),
-                        help="Generation backend (default: CV_PROVIDER or openai)")
-    result.add_argument("--model", help="OpenAI model ID or local model directory; defaults to OPENAI_MODEL or LOCAL_MODEL")
-    result.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto",
+    result.add_argument("--provider", choices=("openai", "local"), default=None,
+                        help="Generation backend; overrides setup.json, then CV_PROVIDER or openai")
+    result.add_argument("--llm", "--model", dest="model", help="OpenAI model ID or local model name relative to llm/; --model is an alias")
+    result.add_argument("--device", choices=("auto", "cpu", "cuda"), default=None,
                         help="Local model device; auto selects CUDA if available, otherwise CPU")
-    result.add_argument("--max-new-tokens", type=positive_integer, default=8192,
+    result.add_argument("--max-new-tokens", type=positive_integer, default=None,
                         help="Local generation token budget (default: 8192)")
     result.add_argument("--language", help="Output language; defaults to the advertisement language")
-    result.add_argument("--timezone", default=os.environ.get("CV_TIMEZONE"),
+    result.add_argument("--timezone", default=None,
                         help="IANA timezone for filenames; defaults to the system local timezone")
-    result.add_argument("--timeout", type=positive_timeout, default=180, help="OpenAI request timeout in seconds (default: 180); not used locally")
+    result.add_argument("--timeout", type=positive_timeout, default=None, help="OpenAI request timeout in seconds (default: 180); not used locally")
     result.add_argument("--font-dir", type=Path, help="Directory containing DejaVuSans.ttf and DejaVuSans-Bold.ttf")
     return result
 
@@ -88,18 +90,13 @@ def run(args: argparse.Namespace) -> int:
     timezone = ZoneInfo(args.timezone) if args.timezone else None
     if args.output is not None:
         output_stem(args.output, "", "", "", datetime.now())
-    if args.provider not in ("openai", "local"):
-        raise ValueError("CV_PROVIDER must be openai or local.")
-    model_variable = "OPENAI_MODEL" if args.provider == "openai" else "LOCAL_MODEL"
-    args.model = args.model or os.environ.get(model_variable)
-    if not args.model or not args.model.strip():
-        raise ValueError(f"Choose a model with --model or {model_variable}.")
     api_key = ""
     if args.provider == "openai":
         api_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if not api_key:
             raise ValueError("Set OPENAI_API_KEY in your environment before generating a CV.")
     else:
+        args.model = str(mapped_input("llm", Path(args.model)))
         validate_model_directory(args.model)
     # Setting the environment is intentional: .env files are not silently loaded.
     output_dir = Path.cwd() / "output"
@@ -174,8 +171,31 @@ def run(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                         datefmt="%H:%M:%S", stream=sys.stderr)
-    args = parser().parse_args(argv)
+    argument_parser = parser()
+    args = argument_parser.parse_args(argv)
+    if args.setup:
+        if not args.provider or not args.model:
+            argument_parser.error("--setup requires --provider and --llm (or --model)")
+        if any((args.profile, args.jd, args.template, args.output)):
+            argument_parser.error("--setup cannot be combined with generation input/output arguments")
+    elif not all((args.profile, args.jd, args.template)):
+        argument_parser.error("generation requires --profile, --jd, and --template")
     try:
+        # Setup replaces defaults without depending on a previous, possibly broken file.
+        saved = None if args.setup else load_setup()
+        settings = resolve_settings(args, saved)
+        if args.setup:
+            path = save_setup(settings)
+            LOG.info("Project defaults saved to %s. No model was downloaded or inference performed.", path)
+            if settings.provider == "local" and not mapped_input("llm", Path(settings.llm)).is_dir():
+                LOG.warning("The local model is not installed yet. Place its complete files in llm/%s before generation.", settings.llm)
+            return 0
+        if saved:
+            LOG.info("Loaded project defaults from setup.json.")
+        args.provider, args.model = settings.provider, settings.llm
+        for field in ("device", "max_new_tokens", "timeout", "language", "timezone"):
+            setattr(args, field, getattr(settings, field))
+        args.font_dir = Path(settings.font_dir) if settings.font_dir else None
         return run(args)
     except (ValueError, ProviderError, OSError, ZoneInfoNotFoundError) as exc:
         LOG.error("%s", exc)
