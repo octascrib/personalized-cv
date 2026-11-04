@@ -1,8 +1,9 @@
 ---
 id: 04-career-change
-version: 1.0.1
+version: 1.0.2
 instruction_language: en
 output_format: text-pdf
+max_pages: 2
 reviewed_on: 2026-11-04
 ---
 

@@ -11,7 +11,23 @@ experience or qualifications.
 The project contains five independent Markdown templates in `cv-templates/`.
 Research, sources, and the catalog are documented in
 [docs/cv-template-research.md](docs/cv-template-research.md).
-LLM integration and the PDF generator are not implemented yet.
+The initial Python CLI reads a profile, a job advertisement, and a selected template;
+uses OpenAI for structured content; and generates a PDF, Markdown source, and an
+adaptation report with live terminal progress logs.
+
+See [CLI setup and usage](docs/cli.md) for installation, configuration, validation,
+and current limitations. With dependencies installed and `OPENAI_API_KEY` and
+`OPENAI_MODEL` set:
+
+```bash
+python -m personalized_cv \
+  --profile private/profile.md \
+  --job input/job.txt \
+  --template cv-templates/01-reverse-chronological.md
+```
+
+Add `--output my-cv.pdf` to select a filename. Otherwise it is generated from the
+candidate name, job title, company, and generation timestamp. Results go to `output/`.
 
 ## Repository language
 

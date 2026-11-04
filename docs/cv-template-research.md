@@ -65,7 +65,7 @@ structure, PDF specification, and checks. Shared rules are intentionally repeate
 an LLM receiving a single template must have all applicable instructions. When
 changing shared rules, update all five files and their versions.
 
-## Future application integration
+## Application integration design
 
 1. List only `cv-templates/*.md`, read metadata, and validate the selected template.
    Keep this research document outside the template catalog.
@@ -80,6 +80,7 @@ changing shared rules, update all five files and their versions.
    and layout. Before sending data to an LLM provider, explain what personal data
    will be sent and to whom. Avoid logging profiles or API keys.
 
-**Current status:** a collection of Markdown instructions. There is no LLM
-integration, renderer, generated CV, or validation in real ATS portals yet. These
-are future implementation steps, not features already delivered.
+**Current status:** the initial CLI integrates OpenAI structured output, exact
+source-quotation checks, PDF rendering, and text extraction checks. Visual inspection
+remains manual. No real ATS portal validation or live-provider generation has been
+performed. See [CLI usage and limitations](cli.md).

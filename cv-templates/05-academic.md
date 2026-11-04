@@ -1,8 +1,9 @@
 ---
 id: 05-academic
-version: 1.0.1
+version: 1.0.2
 instruction_language: en
 output_format: text-pdf
+max_pages: null
 reviewed_on: 2026-11-04
 ---
 
