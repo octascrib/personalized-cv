@@ -9,9 +9,12 @@
 !.env.example
 
 # Candidate data and generated documents
-private/
-input/
-output/
+/private/*
+!/private/.gitkeep
+/input/*
+!/input/.gitkeep
+/output/*
+!/output/.gitkeep
 tmp/
 
 # Python

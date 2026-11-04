@@ -22,6 +22,15 @@ repository language policy. Keep candidate data and generated documents outside 
 
 ## Local data
 
-Store profiles, job advertisements, and generated CVs in `private/`, `input/`, or
-`output/`, which are excluded from Git. Store API keys locally in `.env`, also
-excluded from Git. Do not add candidates' personal data to templates.
+Use the following local directories:
+
+- `private/`: the candidate's complete source profile and supporting documents.
+- `input/`: job advertisements to use when tailoring a CV.
+- `output/`: generated CVs and adaptation reports.
+
+Only the root `.gitkeep` file in each directory is tracked. All other files and
+subdirectories inside these directories are ignored, including nested `.gitkeep`
+files. Do not force-add personal documents to Git.
+
+Store API keys locally in `.env`, which is also excluded from Git. Do not add
+candidates' personal data to templates.
