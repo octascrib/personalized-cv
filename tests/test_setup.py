@@ -56,7 +56,7 @@ class SetupTests(unittest.TestCase):
             (model / "config.json").write_text("{}")
             (model / "model.safetensors").touch()
             self.assertEqual(main(["--setup", "local", "--llm", "my-instruct-model",
-                                   "--device", "cpu", "--max-new-tokens", "4096"]), 0)
+                                   "--device", "cpu", "--dtype", "bfloat16", "--max-new-tokens", "4096"]), 0)
             with patch.dict(os.environ, {"OPENAI_API_KEY": "", "CV_PROVIDER": "local", "LOCAL_MODEL": "wrong-model"}), \
                     patch("personalized_cv.cli.generate_local", return_value=fixture()) as local, \
                     patch("personalized_cv.cli.generate") as cloud:
@@ -64,6 +64,7 @@ class SetupTests(unittest.TestCase):
                                        "01-reverse-chronological.md"]), 0)
             self.assertEqual(local.call_args.args[4], str(model))
             self.assertEqual(local.call_args.args[5:], ("cpu", 4096))
+            self.assertEqual(local.call_args.kwargs["dtype"], "bfloat16")
             cloud.assert_not_called()
             self.assertEqual(len(list((root / "output").glob("*.pdf"))), 1)
 

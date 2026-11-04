@@ -52,6 +52,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--llm", "--model", dest="model", help="OpenAI model ID or local model name relative to llm/; --model is an alias")
     result.add_argument("--device", choices=("auto", "cpu", "cuda"), default=None,
                         help="Local model device; auto selects CUDA if available, otherwise CPU")
+    result.add_argument("--dtype", choices=("auto", "float32", "bfloat16", "float16"),
+                        help="Local compute precision; auto uses float32 on CPU and float16 on CUDA")
     result.add_argument("--max-new-tokens", type=positive_integer, default=None,
                         help="Local generation token budget (default: 8192)")
     result.add_argument("--language", help="Output language; defaults to the advertisement language")
@@ -116,7 +118,7 @@ def run(args: argparse.Namespace) -> int:
             LOG.info("Using the local backend; profile and advertisement remain on this machine.")
             with progress("Local model processing"):
                 cv = generate_local(profile, job, template, args.language, args.model,
-                                    args.device, args.max_new_tokens)
+                                    args.device, args.max_new_tokens, dtype=args.dtype)
         # Page limits are application/template policy, never a model-controlled override.
         limit = metadata.get("max_pages", "2")
         cv.max_pages = None if limit == "null" else int(limit)
@@ -198,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
         if saved:
             LOG.info("Loaded project defaults from %s.", setup_path(settings.provider).name)
         args.provider, args.model = settings.provider, settings.llm
-        for field in ("device", "max_new_tokens", "timeout", "language", "timezone"):
+        for field in ("device", "dtype", "max_new_tokens", "timeout", "language", "timezone"):
             setattr(args, field, getattr(settings, field))
         args.font_dir = Path(settings.font_dir) if settings.font_dir else None
         return run(args)

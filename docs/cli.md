@@ -64,7 +64,7 @@ A local setup contains:
 
 The remote file stores `provider: "openai"` to identify the underlying implementation.
 API keys remain in `OPENAI_API_KEY`, never in configuration files. You can also save
-`--device`, `--max-new-tokens`, `--timeout`, `--language`, `--timezone`, and `--font-dir`.
+`--device`, `--dtype`, `--max-new-tokens`, `--timeout`, `--language`, `--timezone`, and `--font-dir`.
 Both setup files and model weights are excluded from Git.
 
 Choose `--provider local` or `--provider remote` at generation time to load the
@@ -206,7 +206,8 @@ python -m personalized_cv \
 
 `--llm` (`--model` is an alias) takes a model name or relative subdirectory inside
 `llm/` in local mode, and an API model ID in OpenAI mode. Absolute paths and directory
-escapes are rejected for local names. The selected setup file provides saved defaults; without
+traversal is rejected for local names. A symlink inside `llm/` may point to a
+complete model stored elsewhere, such as `/opt/llm/`; its target must be readable. The selected setup file provides saved defaults; without
 setup, `CV_PROVIDER`, `LOCAL_MODEL`, and `OPENAI_MODEL` remain supported. `LOCAL_MODEL`
 also takes a name relative to `llm/`, not a full filesystem path. Local
 mode needs no API key. Neither backend falls back to the other on failure.
@@ -215,7 +216,11 @@ local generation from an existing directory does not send profile or advertiseme
 data to a provider.
 
 `--device auto` selects CUDA when available, otherwise CPU. Explicit `--device cuda`
-fails if CUDA is unavailable. CPU inference uses float32 weights; CUDA uses float16.
+fails if CUDA is unavailable. By default CPU inference uses float32 weights and CUDA uses float16.
+Use `--dtype bfloat16` to explicitly retain BF16 precision on CPU when supported;
+this reduces weight memory relative to float32 but does not guarantee better speed.
+`--dtype float32` and `--dtype float16` are also available. Precision can be saved
+in the selected setup with `--dtype`; older setups default to `auto`.
 RAM/VRAM requirements depend on model size; CPU execution can be slow. There is no
 quantization, disk offloading, MPS support, or persistent model server in this version.
 
@@ -307,3 +312,17 @@ test passed with PyTorch 2.15.0+cpu and Transformers 5.22.1.
 
 Real CV quality must still be validated with your chosen OpenAI model and key or a
 downloaded instruction-tuned local model. GPU execution has not been tested.
+
+## Local Gemma smoke test
+
+On November 4, 2026, `Gemma-4-E4B-it` was loaded from an external directory through
+an `llm/` symlink using the installed Transformers 5.22.1 and PyTorch 2.15.0+cpu.
+A synthetic "Reply with only the word OK" prompt returned `OK` with BF16 CPU weights.
+The test used six CPU threads, generated two tokens in approximately 3.7 seconds,
+and reported peak process RSS of approximately 9.5 GiB. This is a short smoke test,
+not a throughput benchmark or a full-CV quality check. Longer prompts, accessed
+embedding pages, and output caches can increase memory use and runtime.
+
+The application now accepts `--dtype bfloat16`, including during local setup.
+External model symlinks are allowed only for `llm/`; profile, job, and template
+inputs retain their directory containment checks.

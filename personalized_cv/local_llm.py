@@ -46,21 +46,26 @@ def parse_local_response(text: str) -> GeneratedCV:
 
 
 def generate_local(profile: str, job: str, template: str, language: str | None,
-                   model: str, device: str, max_new_tokens: int) -> GeneratedCV:
+                   model: str, device: str, max_new_tokens: int, dtype: str = "auto") -> GeneratedCV:
     path = validate_model_directory(model)
     torch, AutoTokenizer, AutoModelForCausalLM = load_runtime()
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cuda" and not torch.cuda.is_available():
         raise ProviderError("CUDA was requested but is unavailable. Use --device cpu or install a compatible PyTorch/CUDA build.")
-    LOG.info("Loading the local tokenizer and safetensors weights on %s (offline)...", device)
+    if dtype == "auto":
+        dtype = "float32" if device == "cpu" else "float16"
+    if dtype not in ("float32", "bfloat16", "float16"):
+        raise ProviderError("Unsupported local compute dtype.")
+    compute_dtype = getattr(torch, dtype)
+    LOG.info("Loading the local tokenizer and safetensors weights on %s in %s (offline)...", device, dtype)
     try:
         tokenizer = AutoTokenizer.from_pretrained(str(path), local_files_only=True, trust_remote_code=False)
         if not tokenizer.chat_template:
             raise ProviderError("The local tokenizer has no chat template; choose a supported instruction/chat model.")
         local_model = AutoModelForCausalLM.from_pretrained(
             str(path), local_files_only=True, trust_remote_code=False, use_safetensors=True,
-            dtype=torch.float32 if device == "cpu" else torch.float16,
+            dtype=compute_dtype,
         ).to(device).eval()
         messages = [
             {"role": "system", "content": INSTRUCTIONS + "\n\nTEMPLATE INSTRUCTIONS:\n" + template
@@ -75,8 +80,9 @@ def generate_local(profile: str, job: str, template: str, language: str | None,
             messages, tokenize=True, add_generation_prompt=True, return_tensors="pt", return_dict=True,
         ).to(device)
         input_length = inputs["input_ids"].shape[-1]
-        context_limits = [getattr(local_model.config, "max_position_embeddings", None),
-                          getattr(local_model.config, "n_positions", None),
+        text_config = getattr(local_model.config, "text_config", local_model.config)
+        context_limits = [getattr(text_config, "max_position_embeddings", None),
+                          getattr(text_config, "n_positions", None),
                           getattr(tokenizer, "model_max_length", None)]
         context_limits = [limit for limit in context_limits if isinstance(limit, int) and 0 < limit < 10_000_000]
         if context_limits and input_length + max_new_tokens > min(context_limits):

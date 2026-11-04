@@ -20,6 +20,7 @@ class Settings(BaseModel):
     provider: Literal["openai", "local"]
     llm: str
     device: Literal["auto", "cpu", "cuda"] = "auto"
+    dtype: Literal["auto", "float32", "bfloat16", "float16"] = "auto"
     max_new_tokens: int = Field(default=8192, gt=0)
     timeout: float = Field(default=180, gt=0, allow_inf_nan=False)
     language: str | None = None
@@ -77,7 +78,7 @@ def resolve_settings(args: argparse.Namespace, saved: Settings | None = None) ->
     if not model:
         raise ValueError(f"Choose an LLM with --llm, --model, --setup, or {variable}.")
     values = {"provider": provider, "llm": model}
-    for field in ("device", "max_new_tokens", "timeout", "language", "timezone", "font_dir"):
+    for field in ("device", "dtype", "max_new_tokens", "timeout", "language", "timezone", "font_dir"):
         explicit = getattr(args, field)
         if explicit is not None:
             values[field] = str(explicit) if field == "font_dir" else explicit

@@ -92,6 +92,16 @@ class FilesTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mapped_input("profile", Path("link.md"))
 
+    def test_llm_symlink_can_target_external_storage(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as external:
+            with working_directory(Path(directory)):
+                Path("llm").mkdir()
+                Path("llm/model").symlink_to(external, target_is_directory=True)
+                self.assertEqual(mapped_input("llm", Path("model")), Path(external).resolve())
+                for name in ("../model", "/tmp/model"):
+                    with self.assertRaises(ValueError):
+                        mapped_input("llm", Path(name))
+
     def test_mapped_input_supports_nested_relative_names(self):
         with tempfile.TemporaryDirectory() as directory, working_directory(Path(directory)):
             path = Path(directory) / "profile/candidates"

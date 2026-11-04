@@ -26,6 +26,15 @@ Install DejaVu Sans fonts through your operating system. See the
 
 For a local model, put its complete files in `llm/my-instruct-model/`, including
 `config.json`, safetensors weights, and the matching tokenizer and chat template.
+The model directory inside `llm/` may be a symlink to external storage.
+For example, a downloaded Gemma model can be configured for BF16 CPU execution:
+
+```bash
+.venv/bin/python -m personalized_cv --setup local --llm Gemma-4-E4B-it --device cpu --dtype bfloat16
+```
+
+BF16 reduces weight memory compared with the default float32 CPU mode. A short
+local Gemma smoke test succeeded; full CV quality and runtime still need validation.
 Save local defaults once:
 
 ```bash

@@ -31,7 +31,7 @@ class LocalTests(unittest.TestCase):
 
     def runtime(self, output=None, context=32768):
         torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False),
-                                float32="float32", float16="float16", inference_mode=nullcontext)
+                                float32="float32", float16="float16", bfloat16="bfloat16", inference_mode=nullcontext)
         tokenizer = MagicMock()
         tokenizer.chat_template = "test chat template"
         tokenizer.model_max_length = context
@@ -79,6 +79,14 @@ class LocalTests(unittest.TestCase):
             self.assertEqual(tokenizer.decode.call_args.args[0], list(range(10, 20)))
             self.assertFalse(model.generate.call_args.kwargs["do_sample"])
             self.assertEqual(model.generate.call_args.kwargs["pad_token_id"], 0)
+
+    def test_explicit_bfloat16_reaches_model_loader(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.model_directory(directory)
+            runtime, _, _ = self.runtime()
+            with patch("personalized_cv.local_llm.load_runtime", return_value=runtime):
+                generate_local(PROFILE, JOB, "template", None, str(path), "cpu", 100, dtype="bfloat16")
+            self.assertEqual(runtime[2].from_pretrained.call_args.kwargs["dtype"], "bfloat16")
 
     def test_json_fence_is_accepted_but_explanatory_text_is_not(self):
         text = fixture().model_dump_json()
